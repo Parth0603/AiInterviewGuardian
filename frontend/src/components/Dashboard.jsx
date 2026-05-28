@@ -91,7 +91,7 @@ export default function Dashboard() {
 
   const [showReport, setShowReport] = useState(false);
   const timerRef = useRef(null);
-  const terminalEndRef = useRef(null);
+  const terminalContainerRef = useRef(null);
 
   // Session timer hook
   useEffect(() => {
@@ -105,10 +105,10 @@ export default function Dashboard() {
     return () => clearInterval(timerRef.current);
   }, [isSessionRunning]);
 
-  // Auto-scroll terminal logs to bottom ref
+  // Auto-scroll terminal logs internally to prevent page jump/hijack scroll position
   useEffect(() => {
-    if (terminalEndRef.current) {
-      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
     }
   }, [terminalLogs]);
 
@@ -286,12 +286,26 @@ export default function Dashboard() {
                 ? 'border-blue-500/20 bg-blue-950/20 text-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.1)]'
                 : currentApiSource.toLowerCase().includes('groq')
                   ? 'border-amber-500/20 bg-amber-950/20 text-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.1)] animate-pulse'
-                  : 'border-fuchsia-500/20 bg-fuchsia-950/20 text-fuchsia-400 shadow-[0_0_8px_rgba(240,73,244,0.1)] animate-pulse'
+                  : currentApiSource.toLowerCase().includes('openrouter')
+                    ? 'border-cyan-500/20 bg-cyan-950/20 text-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.1)] animate-pulse'
+                    : 'border-fuchsia-500/20 bg-fuchsia-950/20 text-fuchsia-400 shadow-[0_0_8px_rgba(240,73,244,0.1)] animate-pulse'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${
-                currentApiSource.toLowerCase().includes('gemini') ? 'bg-blue-400' : currentApiSource.toLowerCase().includes('groq') ? 'bg-amber-400' : 'bg-fuchsia-400'
+                currentApiSource.toLowerCase().includes('gemini') 
+                  ? 'bg-blue-400' 
+                  : currentApiSource.toLowerCase().includes('groq') 
+                    ? 'bg-amber-400' 
+                    : currentApiSource.toLowerCase().includes('openrouter')
+                      ? 'bg-cyan-400'
+                      : 'bg-fuchsia-400'
               }`} style={{
-                boxShadow: currentApiSource.toLowerCase().includes('gemini') ? '0 0 6px #60A5FA' : currentApiSource.toLowerCase().includes('groq') ? '0 0 6px #F59E0B' : '0 0 6px #F049F4'
+                boxShadow: currentApiSource.toLowerCase().includes('gemini') 
+                  ? '0 0 6px #60A5FA' 
+                  : currentApiSource.toLowerCase().includes('groq') 
+                    ? '0 0 6px #F59E0B' 
+                    : currentApiSource.toLowerCase().includes('openrouter')
+                      ? '0 0 6px #22D3EE'
+                      : '0 0 6px #F049F4'
               }}></span>
               <span className="text-gray-500 uppercase">ENGINE:</span>
               <span className="font-orbitron text-[10px] font-black tracking-wider uppercase">
@@ -558,7 +572,10 @@ export default function Dashboard() {
               </div>
 
               {/* Dynamic scroll feed */}
-              <div className="bg-black/60 rounded-xl border border-white/5 p-3 font-mono text-[9px] leading-relaxed h-[115px] overflow-y-auto flex flex-col gap-1.5 text-gray-500">
+              <div 
+                ref={terminalContainerRef}
+                className="bg-black/60 rounded-xl border border-white/5 p-3 font-mono text-[9px] leading-relaxed h-[115px] overflow-y-auto flex flex-col gap-1.5 text-gray-500"
+              >
                 {terminalLogs.map((log, idx) => {
                   let color = 'text-green-500/50';
                   if (log.type === 'error') color = 'text-red-500/70 font-bold';
@@ -570,8 +587,6 @@ export default function Dashboard() {
                     </div>
                   );
                 })}
-                {/* Scrolling baseline anchor */}
-                <div ref={terminalEndRef} />
               </div>
 
             </div>

@@ -61,31 +61,37 @@ export default function FinalReportModal({ history = [], onClose }) {
   const isImproving = secondHalfAvg > firstHalfAvg + 1;
   const isDeclining = secondHalfAvg < firstHalfAvg - 1;
 
-  // 1. Dynamic Strengths Identification
+  // 1. Dynamic Strengths Identification (Simple Language)
   if (avgConfidence >= 75) {
-    strengths.push(`Posture Composure: You sustained a solid confidence rating of ${avgConfidence}%, showing stable shoulder lines and steady alignment.`);
+    strengths.push(`Good Composure: You did a great job staying calm, sitting steady, and maintaining a confident face (${avgConfidence}% average).`);
   }
   if (avgAttention >= 80) {
-    strengths.push(`Focus Persistence: Excellent attentive gaze score (${avgAttention}%), indicating minimal visual distractions.`);
+    strengths.push(`Great Focus: You stayed highly focused on the screen with very few distractions (${avgAttention}% average).`);
   }
   if (avgEyeContact >= 75) {
-    strengths.push(`Direct Engagement: Elite camera lens contact index (${avgEyeContact}%), establishing strong virtual connection.`);
+    strengths.push(`Excellent Eye Contact: You kept looking directly at the camera lens, creating a strong connection (${avgEyeContact}% average).`);
   }
 
-  // 2. Dynamic Development Areas
+  // 2. Dynamic Development Areas (Simple Language)
   if (avgConfidence < 75) {
-    let advice = `Posture Correction: Your confidence score dropped below the 60% threshold in ${confidenceDips} check intervals. Focus on sitting upright and aligning your face to the center guidelines.`;
-    if (confidenceDips === 0) advice = `Face Alignment stability: Stabilize your posture and hold a calm, neutral facial expression to maximize composture ratings.`;
+    let advice = `Improve Composure: Try to sit up straight and keep your shoulders relaxed. Keeping a calm, friendly expression will make you look more confident.`;
+    if (confidenceDips > 0) {
+      advice = `Steady Posture: Your posture drifted in ${confidenceDips} check intervals. Sit up straight and align your face with the camera center lines to look more confident.`;
+    }
     improvements.push(advice);
   }
   if (avgAttention < 80) {
-    let advice = `Attention Drift: We registered ${attentionDips} minor focus disruptions where your head shifted. Focus on minimizing peripheral checking or looking away from standard screen center bounds.`;
-    if (attentionDips === 0) advice = `Avoid Off-Screen Drift: Keep your attention fixed forward on the screen center rather than scanning side boundaries.`;
+    let advice = `Stay Focused: Try to keep your head steady and avoid looking away from the screen center during the conversation.`;
+    if (attentionDips > 0) {
+      advice = `Avoid Distractions: We detected ${attentionDips} minor focus shifts. Try to look straight ahead at the screen rather than letting your head drift.`;
+    }
     improvements.push(advice);
   }
   if (avgEyeContact < 75) {
-    let advice = `Gaze Stabilization: We flagged ${eyeDips} instances of gaze departure. Maintain continuous lens anchor rather than looking down or reading distracting scripts.`;
-    if (eyeDips === 0) advice = `Lens Anchor consistency: Hold your gaze steadily on the camera lens rather than scanning secondary display windows.`;
+    let advice = `Keep Eye Contact: Try to look directly at the camera lens more often instead of looking down at your notes or at other parts of the screen.`;
+    if (eyeDips > 0) {
+      advice = `Lens Anchor: You looked away from the camera lens ${eyeDips} times. Make a habit of speaking directly to the lens rather than looking down.`;
+    }
     improvements.push(advice);
   }
 
@@ -97,30 +103,30 @@ export default function FinalReportModal({ history = [], onClose }) {
     strengths.push("Perfect Composure Spectrum: Continue practicing this high level of posture and gaze stability.");
   }
 
-  // 3. Dynamic Coach Insights Paragraph Generation
+  // 3. Dynamic Coach Insights Paragraph Generation (Simple Language)
   let dynamicCoachInsights = "";
   if (count === 0) {
-    dynamicCoachInsights = "Session calibration incomplete. Please run active telemetry to compile real-time behavioral insights.";
+    dynamicCoachInsights = "Please start the camera and run a practice session first to see your personal coaching feedback here!";
   } else {
-    let trendPhrase = "retained a steady focus level throughout the session.";
+    let trendPhrase = "kept a very steady focus throughout the practice.";
     if (isImproving) {
-      trendPhrase = `showed a clear positive progression, with composure scores rising by ${secondHalfAvg - firstHalfAvg}% in the second half of the session as you acclimated.`;
+      trendPhrase = `started a bit nervous but got much better and more confident in the second half of the session!`;
     } else if (isDeclining) {
-      trendPhrase = `exhibited minor performance fatigue, with telemetry indices dropping by ${firstHalfAvg - secondHalfAvg}% towards the latter half. Focus on sustaining postural focus during longer drills.`;
+      trendPhrase = `started strong but seemed to lose a bit of focus and look away more towards the end. Try to keep your energy up!`;
     }
 
     let lowestMetricName = "Confidence";
     let lowestMetricScore = avgConfidence;
     if (avgAttention < lowestMetricScore) {
-      lowestMetricName = "Attentiveness";
+      lowestMetricName = "Focus";
       lowestMetricScore = avgAttention;
     }
     if (avgEyeContact < lowestMetricScore) {
-      lowestMetricName = "Eye Gaze Alignment";
+      lowestMetricName = "Eye Contact";
       lowestMetricScore = avgEyeContact;
     }
 
-    dynamicCoachInsights = `Overall, during this ${count * 3}s session, the candidate ${trendPhrase} Your most prominent development priority lies in ${lowestMetricName} (averaging ${lowestMetricScore}%), which triggered ${lowestMetricScore < 60 ? 'critical warnings' : 'minor deviations'} in telemetry tracking. To maximize composure ratings, practice structured breathing intervals and anchor your gaze firmly on the optical lens.`;
+    dynamicCoachInsights = `During this practice session, you ${trendPhrase} Your main area to work on is ${lowestMetricName} (which averaged ${lowestMetricScore}%). To improve, try taking a deep breath before speaking and keep your eyes locked on the camera lens. You are on the right track!`;
   }
 
   const handleClose = () => {

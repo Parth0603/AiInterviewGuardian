@@ -37,6 +37,7 @@ app.get('/api/status', (req, res) => {
     gemini_active: !!ai,
     groq_active: !!(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'YOUR_GROQ_API_KEY_HERE'),
     grok_active: !!(process.env.XAI_API_KEY && process.env.XAI_API_KEY !== 'YOUR_XAI_API_KEY_HERE'),
+    openrouter_active: !!(process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== 'YOUR_OPENROUTER_API_KEY_HERE'),
     timestamp: new Date().toISOString()
   });
 });
@@ -191,6 +192,84 @@ Return raw JSON only matching the schema structure. Do not wrap in markdown or c
   return parsed;
 }
 
+// Helper: Calls OpenRouter API using Gemini 2.5 Flash (or chosen vision model)
+async function callOpenRouterFailover(base64Data, mimeType) {
+  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
+  if (!openRouterApiKey || openRouterApiKey === 'YOUR_OPENROUTER_API_KEY_HERE') {
+    throw new Error('OPENROUTER_API_KEY_UNAVAILABLE');
+  }
+
+  const model = process.env.OPENROUTER_VISION_MODEL || 'google/gemini-2.5-flash';
+  console.log(`🛰️ Initiating OpenRouter Failover using model ${model}...`);
+
+  // Format base64 image URL for OpenRouter API
+  const imageUrl = `data:${mimeType};base64,${base64Data}`;
+
+  const prompt = `Assess candidate telemetry from this frame. Be extremely concise.
+Evaluate and return a structured JSON response matching this EXACT schema:
+{
+  "confidence": "Confidence assessment statement (Strict max 4 words)",
+  "confidence_score": 0-100,
+  "attention": "Attentiveness statement (Strict max 4 words)",
+  "attention_score": 0-100,
+  "eye_contact": "Eye-gaze direction statement (Strict max 4 words)",
+  "eye_contact_score": 0-100,
+  "emotion": "Single word micro-expression (e.g. Calm, Nervous, Engaged, Neutral)",
+  "warnings": ["active environmental threats (e.g. low lighting)"],
+  "summary": "Consolidated strategic coaching tip (strict max 15 words)"
+}
+
+Return raw JSON only matching the schema structure. Do not wrap in markdown or codeblocks.`;
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openRouterApiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://ai-interview-guardian.com',
+      'X-Title': 'AI Interview Guardian'
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageUrl
+              }
+            }
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter API failure: ${errText}`);
+  }
+
+  const completion = await response.json();
+  const rawText = completion.choices[0].message.content;
+  
+  // Parse structured JSON
+  const parsed = JSON.parse(rawText.trim());
+  
+  // Inject explicit failover warning indicator
+  parsed.warnings = [
+    ...(parsed.warnings || []),
+    `FAILOVER ACTIVE: Powered by OpenRouter (${model})`
+  ];
+  
+  return parsed;
+}
+
 // REST analyze endpoint
 app.post('/api/analyze', async (req, res) => {
   const { image } = req.body;
@@ -310,10 +389,20 @@ Evaluate:
       groqResult.api_source = 'Groq LPU (Llama 4 Scout)';
       return res.json(groqResult);
     } catch (groqError) {
-      console.warn('⚠️ Groq LPU Analysis failed. Routing to xAI Grok failover...', groqError.message);
+      console.warn('⚠️ Groq LPU Analysis failed. Routing to OpenRouter failover...', groqError.message);
     }
 
-    // Phase 3: xAI Grok Failover Routine
+    // Phase 3: OpenRouter Failover Routine
+    try {
+      const openRouterResult = await callOpenRouterFailover(base64Data, mimeType);
+      console.log('✅ OpenRouter Failover completed successfully:', openRouterResult);
+      openRouterResult.api_source = `OpenRouter (${process.env.OPENROUTER_VISION_MODEL || 'Gemini 2.5 Flash'})`;
+      return res.json(openRouterResult);
+    } catch (openRouterError) {
+      console.warn('⚠️ OpenRouter Analysis failed. Routing to xAI Grok failover...', openRouterError.message);
+    }
+
+    // Phase 4: xAI Grok Failover Routine
     try {
       const grokResult = await callGrokFailover(base64Data, mimeType);
       console.log('✅ xAI Grok Failover completed successfully:', grokResult);
@@ -322,10 +411,10 @@ Evaluate:
     } catch (grokError) {
       console.error('❌ xAI Grok Failover failed or key missing:', grokError.message);
       
-      // All three APIs are exhausted or unavailable - trigger strict hard lockdown
+      // All active live AI services are exhausted or unavailable - trigger strict hard lockdown
       return res.status(429).json({ 
         error: 'QUOTA_EXHAUSTED', 
-        message: 'All integrated live AI services (Gemini, Groq LPU, and xAI Grok) are exhausted, decommissioned, or incorrect.' 
+        message: 'All integrated live AI services (Gemini, Groq LPU, OpenRouter, and xAI Grok) are exhausted, decommissioned, or incorrect.' 
       });
     }
 

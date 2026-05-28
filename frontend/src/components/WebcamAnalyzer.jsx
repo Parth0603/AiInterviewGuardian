@@ -103,8 +103,8 @@ export default function WebcamAnalyzer({ onFrameCaptured, onWarningChange, onLoc
       if (window.faceapi && !modelError) {
         try {
           const options = new window.faceapi.TinyFaceDetectorOptions({
-            inputSize: 160, // Smaller input size for maximum speed
-            scoreThreshold: 0.4
+            inputSize: 320, // Standard size for highly robust tracking (picks up glasses and angles perfectly)
+            scoreThreshold: 0.3 // Slightly lower threshold to ensure robust locks for glasses users
           });
           
           const detections = await window.faceapi.detectAllFaces(video, options);
