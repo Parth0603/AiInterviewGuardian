@@ -137,3 +137,67 @@ export function stopWarningAlert() {
     warningInterval = null;
   }
 }
+
+/**
+ * Plays a gorgeous dual-tone swipe chirp (600Hz to 950Hz) for Q&A card transitions
+ */
+export function playNextQuestionChirp() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(950, now + 0.18);
+
+    gainNode.gain.setValueAtTime(0.04, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.18);
+  } catch (e) {
+    // Ignore
+  }
+}
+
+/**
+ * Plays a layered cyber-chord chime celebrating the final report compilation
+ */
+export function playSystemReadyChime() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5 (Cyber Major Chord)
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08); // Arpeggiated entry
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1000, now);
+
+      gainNode.gain.setValueAtTime(0.03, now + idx * 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.6);
+
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.65);
+    });
+  } catch (e) {
+    // Ignore
+  }
+}
+

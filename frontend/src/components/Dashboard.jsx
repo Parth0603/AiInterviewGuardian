@@ -16,9 +16,101 @@ import {
   Brain,
   Award,
   Camera,
-  CameraOff
+  CameraOff,
+  X
 } from 'lucide-react';
-import { playClick } from '../utils/audio';
+import { playClick, playNextQuestionChirp, playSystemReadyChime } from '../utils/audio';
+
+const QUESTIONS_LIBRARY = {
+  "Frontend Engineering": {
+    "STAR Behavioral": [
+      "Tell me about a time when you had to optimize a slow web application page under a tight deadline. What did you measure and what actions did you take?",
+      "Describe a situation where you had a major architectural disagreement with a senior engineer. How did you handle the debate, and what was the outcome?",
+      "Talk about a frontend feature you delivered that failed or had a serious bug in production. How did you react, communicate, and fix it?"
+    ],
+    "Technical Coding": [
+      "Explain how you would design and implement a custom React state management library similar to Redux or Zustand from scratch.",
+      "How does the browser event loop interact with microtasks (Promises) and macrotasks (setTimeout)? Give a clear example of task execution order.",
+      "How would you build a highly performant virtualized scroll list that handles 100,000 items smoothly at 60 FPS in pure Javascript?"
+    ],
+    "System Architecture": [
+      "Design a scalable, global micro-frontend architecture for a large enterprise platform. How do you handle shared state and assets?",
+      "Describe how you would design a robust, secure Client-Side telemetry tracking and logging SDK that handles offline queuing and batching.",
+      "How would you optimize a modern Single Page App (SPA) for Core Web Vitals, specifically targeting LCP, FID, and CLS?"
+    ],
+    "Pressure Test": [
+      "Your site experiences a massive traffic spike and LCP spikes to 8 seconds. You have 3 minutes to diagnose the frontend bottle neck. What is your plan?",
+      "An interviewer tells you your proposed virtualization system is completely flawed because of dynamic row heights. Defend your design under pressure.",
+      "Why is CSS-in-JS considered a performance anti-pattern by some senior architects? Critique its runtime impact under heavy load."
+    ]
+  },
+  "Backend Engineering": {
+    "STAR Behavioral": [
+      "Describe a time when a database lock caused a massive production outage on your watch. How did you coordinate the resolution and prevent it from recurring?",
+      "Tell me about a complex feature request where the product team wanted something that was technically unviable. How did you negotiate the trade-offs?",
+      "Recall a time you had to take ownership of a legacy backend service with zero documentation. How did you gain confidence and refactor it?"
+    ],
+    "Technical Coding": [
+      "Explain the inner workings of a distributed lock using Redis (Redlock). What are the main race conditions and failure states to look out for?",
+      "How would you write an optimal token-bucket rate limiter middleware that can handle 50,000 requests per second across a cluster?",
+      "Explain the difference between optimistic and pessimistic locking in relational databases, and write pseudo-SQL showing when to use each."
+    ],
+    "System Architecture": [
+      "Design a highly available distributed notification system that must deliver 10 million push alerts per minute with absolute strict order delivery.",
+      "How would you transition a synchronous monolith billing pipeline into an event-driven, transactionally safe Kafka-based microservice architecture?",
+      "Design a multi-region database replication strategy that maintains high consistency (CAP theorem) with sub-second write latencies."
+    ],
+    "Pressure Test": [
+      "Your Kafka cluster has a massive consumer lag and orders are failing to process. The business is losing $10,000 per minute. Walk me through your actions.",
+      "Your senior architect insists on using MongoDB for a complex, highly relational transactional system. How do you convince them otherwise?",
+      "Why is REST generally considered inferior to gRPC or WebSockets for internal service-to-service microservices? Argue your case aggressively."
+    ]
+  },
+  "System Design": {
+    "STAR Behavioral": [
+      "Tell me about a time you had to design a system that had to scale 10x within a week due to a viral marketing campaign. What did you prioritize?",
+      "Describe a scenario where you made a major design mistake that resulted in high cloud infrastructure bills. How did you discover and remediate it?",
+      "Talk about a design review where your peers heavily criticized your system model. How did you handle the critique and refine the design?"
+    ],
+    "Technical Coding": [
+      "Explain the architectural difference between a B-Tree and an LSM-Tree index. Which index is better suited for write-heavy workloads and why?",
+      "Explain how a consistent hashing ring operates in a distributed caching ring (like Memcached), and how it minimizes cache misses during re-sharding.",
+      "Detail the protocol sequence of a two-phase commit (2PC) database transaction, and explain why it is vulnerable to coordinator crashes."
+    ],
+    "System Architecture": [
+      "Design a global, real-time collaborative document editor like Google Docs. How do you handle conflict resolution and document synchronization?",
+      "Design a scalable, highly available video streaming backend like Netflix that handles content ingestion, transcoding, and global CDN delivery.",
+      "Design a high-frequency financial trading system that processes 1 million transactions per second with sub-millisecond latencies."
+    ],
+    "Pressure Test": [
+      "Your caching layer is experiencing cache stampede/avalanche and hitting your database directly, causing it to freeze. How do you resolve this live?",
+      "An interviewer claims your consistent hashing ring design is inefficient because it doesn't handle hot-spots. How do you counter and adapt?",
+      "Argue for and against microservices versus monorepos. Under what strict business scenarios is a monolith actually superior?"
+    ]
+  },
+  "Product Management": {
+    "STAR Behavioral": [
+      "Describe a time when you had to sunset a popular product feature that customers loved but was no longer commercially viable. How did you manage it?",
+      "Tell me about a major product launch that failed to meet its key performance indicators (KPIs). What did you learn and how did you pivot?",
+      "Talk about a time you had to lead a cross-functional engineering team with highly divergent opinions. How did you establish alignment?"
+    ],
+    "Technical Coding": [
+      "Explain to a non-technical stakeholder how modern AI LLMs utilize context windows and why token usage increases operational cost.",
+      "How do you evaluate and prioritize technical debt versus customer-facing product features in a fast-paced agile roadmap?",
+      "Explain what latency is, how it affects user retention, and how you define Service Level Agreements (SLAs) for API endpoints."
+    ],
+    "System Architecture": [
+      "How would you design a product telemetry instrumentation framework to measure user conversion funnels without violating user privacy regulations?",
+      "Design the product roadmap and core metrics checklist for launching a product telemetry instrumentation framework to measure user conversion funnels without violating user privacy regulations?",
+      "How would you structure a system dashboard monitoring product health, and what are the top 3 North Star metrics you would track?"
+    ],
+    "Pressure Test": [
+      "The engineering lead tells you they cannot deliver the MVP on time unless you cut the security logging module. What is your product decision?",
+      "An investor tells you your product priority matrix is completely wrong because it ignores competitor feature parity. Defend your roadmap.",
+      "Why is a strict data-driven approach sometimes a trap for product discovery? Argue the case for intuition and direct customer research."
+    ]
+  }
+};
 
 export default function Dashboard() {
   const [isSessionRunning, setIsSessionRunning] = useState(false);
@@ -28,6 +120,18 @@ export default function Dashboard() {
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [quotaReached, setQuotaReached] = useState(false);
   const [currentApiSource, setCurrentApiSource] = useState('Google Gemini 2.5 Flash');
+
+  // Structured Q&A Interview Mode State Machine
+  const [interviewStage, setInterviewStage] = useState('SETUP'); // 'SETUP' | 'ACTIVE_Q1' | 'ACTIVE_Q2' | 'ACTIVE_Q3' | 'GRADING' | 'REPORT'
+  const [subject, setSubject] = useState('Frontend Engineering');
+  const [theme, setTheme] = useState('STAR Behavioral');
+  const [questions, setQuestions] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [transcripts, setTranscripts] = useState({ 0: '', 1: '', 2: '' });
+  const [isListening, setIsListening] = useState(false);
+  const [gradeReport, setGradeReport] = useState(null);
+
+  const recognitionRef = useRef(null);
 
   // Quota Telemetry Tracking (Free Tier limits: 15 RPM / 1500 RPD)
   const [rpm, setRpm] = useState(0);
@@ -137,6 +241,220 @@ export default function Dashboard() {
     addTerminalLog('TELEMETRY SEQUENCE HALTED', 'info');
   };
 
+  // Refs to allow our continuous web speech recognition loop to read the latest states dynamically
+  const currentQuestionIndexRef = useRef(0);
+  const interviewStageRef = useRef('SETUP');
+
+  useEffect(() => {
+    currentQuestionIndexRef.current = currentQuestionIndex;
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    interviewStageRef.current = interviewStage;
+  }, [interviewStage]);
+
+  // Clean up any speech recognition instances on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  // Web Speech API Transcription Controller - Always creates a FRESH instance for reliable mic tracking
+  const startSpeechRecognition = (qIndex) => {
+    // ALWAYS stop any existing recognition first before creating a new one
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onend = null; // Prevent auto-restart loop from firing on intentional stop
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.stop();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+
+    // Small delay to let browser fully release the mic before re-acquiring
+    setTimeout(() => {
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          addTerminalLog('SPEECH RECOGNITION NOT SUPPORTED BY BROWSER', 'warning');
+          return;
+        }
+
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = 'en-US';
+        rec.maxAlternatives = 1;
+
+        rec.onstart = () => {
+          setIsListening(true);
+          addTerminalLog(`MIC LINK ACTIVE // RECORDING Q0${(qIndex || currentQuestionIndexRef.current) + 1}...`, 'info');
+        };
+
+        rec.onerror = (e) => {
+          console.error('Speech recognition error:', e.error, e);
+          setIsListening(false);
+          if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+            addTerminalLog('MIC ACCESS DENIED // CHECK BROWSER PERMISSIONS', 'error');
+          } else if (e.error === 'no-speech') {
+            // No speech detected - this is normal, just restart
+            addTerminalLog('MIC STANDBY // NO SPEECH DETECTED, CONTINUING TO LISTEN...', 'info');
+          } else if (e.error === 'audio-capture') {
+            addTerminalLog('MIC HARDWARE ERROR // NO MICROPHONE DETECTED', 'error');
+          } else {
+            addTerminalLog(`MIC SYSTEM WARNING: ${e.error}`, 'warning');
+          }
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+          // Self-healing: auto-restart ONLY if interview is still active
+          if (interviewStageRef.current && interviewStageRef.current.startsWith('ACTIVE_Q') && recognitionRef.current === rec) {
+            console.log('🛰️ Speech recognition ended. Auto-restarting...');
+            setTimeout(() => {
+              if (interviewStageRef.current && interviewStageRef.current.startsWith('ACTIVE_Q') && recognitionRef.current === rec) {
+                try {
+                  rec.start();
+                } catch (err) {
+                  console.warn('Auto-restart failed:', err.message);
+                }
+              }
+            }, 300);
+          }
+        };
+
+        rec.onresult = (event) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          const activeIndex = currentQuestionIndexRef.current;
+          setTranscripts(prev => {
+            // Strip out any pending interim tag from previous pass
+            const baseText = prev[activeIndex] ? prev[activeIndex].split(' (transcribing...')[0].trimEnd() : '';
+            const cleanedText = baseText + (finalTranscript ? (baseText ? ' ' : '') + finalTranscript.trimEnd() : '');
+            const showText = cleanedText + (interimTranscript ? ` (transcribing... ${interimTranscript})` : '');
+            return {
+              ...prev,
+              [activeIndex]: showText.trim()
+            };
+          });
+        };
+
+        recognitionRef.current = rec;
+        rec.start();
+        console.log('🎙️ Speech recognition started fresh for Q' + ((qIndex !== undefined ? qIndex : currentQuestionIndexRef.current) + 1));
+      } catch (err) {
+        console.error('Speech recognition startup failed:', err);
+        addTerminalLog(`MIC STARTUP ERROR: ${err.message}`, 'error');
+      }
+    }, 250);
+  };
+
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        // Disable auto-restart by nulling handlers BEFORE stopping
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.stop();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+
+    // Clean up transcribing placeholders for all indexes
+    setTranscripts(prev => {
+      const cleaned = {};
+      Object.keys(prev).forEach(key => {
+        cleaned[key] = (prev[key] || '').split(' (transcribing...')[0].trim();
+      });
+      return cleaned;
+    });
+  };
+
+  const handleNextQuestion = async () => {
+    playClick();
+
+    const nextIndex = currentQuestionIndex + 1;
+    if (nextIndex < 3) {
+      playNextQuestionChirp();
+      setCurrentQuestionIndex(nextIndex);
+      setInterviewStage(nextIndex === 1 ? 'ACTIVE_Q2' : 'ACTIVE_Q3');
+      addTerminalLog(`ADVANCING TO QUESTION 0${nextIndex + 1}...`, 'info');
+      // Restart fresh speech recognition for the new question
+      setTimeout(() => {
+        startSpeechRecognition(nextIndex);
+      }, 400);
+    } else {
+      // Complete interview - transition to GRADING state
+      setInterviewStage('GRADING');
+      addTerminalLog('MOCK INTERVIEW QUESTIONS COMPLETE', 'info');
+      addTerminalLog('HALTING TELEMETRY SEQUENCE // INITIATING EVALUATION', 'info');
+      
+      // Stop speech recognition completely
+      stopSpeechRecognition();
+      
+      // Stop session camera analysis
+      setIsSessionRunning(false);
+
+      try {
+        addTerminalLog('DISPATCHING TELEMETRY HISTORY & ANSWER TRANSCRIPTS TO GRADING MATRIX...', 'info');
+        
+        // Clean transcripts up
+        const finalTranscripts = {};
+        Object.keys(transcripts).forEach(key => {
+          finalTranscripts[key] = transcripts[key].split(' (transcribing...')[0].trim();
+        });
+
+        const response = await fetch('http://localhost:5000/api/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject,
+            theme,
+            questions,
+            transcripts: finalTranscripts,
+            telemetryHistory: history
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Grading server error: ${response.statusText}`);
+        }
+
+        const gradeResult = await response.json();
+        console.log('✅ Grading Report generated successfully:', gradeResult);
+        
+        setGradeReport(gradeResult);
+        setInterviewStage('REPORT');
+        playSystemReadyChime();
+        addTerminalLog(`COGNITIVE REPORT COMPILED // TIER VERDICT: ${gradeResult.overall_tier}`, 'info');
+        setShowReport(true);
+      } catch (err) {
+        console.error('Grading request failed:', err);
+        addTerminalLog(`CRITICAL: GRADING PIPELINE TIMEOUT // ${err.message}`, 'error');
+        setInterviewStage('SETUP');
+      }
+    }
+  };
+
   const handleFrameCaptured = async (base64Image) => {
     if (!isSessionRunning) return;
 
@@ -193,7 +511,8 @@ export default function Dashboard() {
           time: timestamp,
           confidence: result.confidence_score,
           attention: result.attention_score,
-          eyeContact: result.eye_contact_score
+          eyeContact: result.eye_contact_score,
+          questionIndex: currentQuestionIndexRef.current
         }
       ]);
 
@@ -383,7 +702,7 @@ export default function Dashboard() {
             isCameraOn={isCameraOn}
           />
 
-          {/* Action Trigger Buttons */}
+          {/* Persistent Utility Control Bar */}
           <div className="flex flex-wrap gap-4 items-center justify-between p-3.5 rounded-xl glass-panel border border-white/5 bg-black/30">
             <div className="flex gap-3">
               {!isSessionRunning ? (
@@ -435,6 +754,99 @@ export default function Dashboard() {
               FEED: {isSessionRunning ? 'CAPTURING ACTIVE' : 'STANDBY'}
             </div>
           </div>
+
+          {/* Q&A Guided Prompter HUD (Visible only when interview is active) */}
+          {interviewStage.startsWith('ACTIVE_Q') && (
+            <div className="flex flex-col gap-4 p-4 rounded-xl glass-panel border border-cyan-500/20 bg-black/40 shadow-[0_0_20px_rgba(34,211,238,0.1)] relative overflow-hidden">
+              <div className="absolute inset-0 cyber-dots opacity-5 pointer-events-none"></div>
+
+              {/* HUD Header */}
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                  <span className="font-orbitron font-black text-[10px] text-cyan-400 tracking-wider uppercase">
+                    INTERVIEW ACTIVE // QUESTION 0{currentQuestionIndex + 1} OF 03
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2 font-mono text-[9px]">
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded border ${
+                    isListening ? 'border-green-500/30 text-green-400 bg-green-950/20 animate-pulse' : 'border-red-500/30 text-red-400 bg-red-950/20'
+                  }`}>
+                    {isListening ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-[ping_1.5s_infinite]"></span>
+                        RECORDING ACTIVE
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        RECORDING PAUSED
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Question Monospace Box */}
+              <div className="p-3 bg-cyan-500/5 border border-cyan-500/10 rounded-lg">
+                <p className="font-mono text-[11px] sm:text-xs text-white font-semibold leading-relaxed">
+                  {questions[currentQuestionIndex]}
+                </p>
+              </div>
+
+              {/* Real-time speech view */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[8px] font-mono text-gray-500 tracking-widest font-black uppercase">
+                  <span>LIVE SPEECH TRANSCRIBER FEED</span>
+                  {isListening && <span className="text-cyan-400 animate-pulse">TRANSCRIBING LIVE...</span>}
+                </div>
+                <div className="bg-black/80 rounded-lg border border-white/5 p-3 font-mono text-xs text-gray-300 leading-normal h-[75px] overflow-y-auto italic">
+                  {transcripts[currentQuestionIndex] ? (
+                    <span>
+                      {transcripts[currentQuestionIndex].includes(' (transcribing...') ? (
+                        <>
+                          {transcripts[currentQuestionIndex].split(' (transcribing...')[0]}
+                          <span className="text-cyan-400 font-bold not-italic">
+                            {" " + transcripts[currentQuestionIndex].match(/\(transcribing\.\.\. ([^)]+)\)/)?.[1]}
+                          </span>
+                        </>
+                      ) : (
+                        transcripts[currentQuestionIndex]
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-gray-600 not-italic">
+                      Waiting for voice input... Start speaking to record your answer for this question.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* HUD Controls */}
+              <div className="flex justify-between items-center gap-3">
+                <button
+                  onClick={() => {
+                    playClick();
+                    stopSpeechRecognition();
+                    setIsSessionRunning(false);
+                    setInterviewStage('SETUP');
+                    addTerminalLog('MOCK INTERVIEW SESSION RESET BY CANDIDATE', 'warning');
+                  }}
+                  className="px-4 py-2 rounded border border-red-500/20 text-red-400 font-orbitron font-extrabold text-[10px] tracking-wider hover:bg-red-600 hover:text-white transition-all cursor-pointer"
+                >
+                  RESET INTERVIEW
+                </button>
+
+                <button
+                  onClick={handleNextQuestion}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded bg-cyan-400 hover:bg-cyan-300 text-black font-orbitron font-black text-[10px] tracking-wider shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all cursor-pointer hover:scale-105 active:scale-95"
+                >
+                  {currentQuestionIndex === 2 ? 'SUBMIT MOCK INTERVIEW & SCORE' : 'SUBMIT ANSWER & NEXT QUESTION'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Active Warnings Console */}
           {activeWarning && (
@@ -601,8 +1013,123 @@ export default function Dashboard() {
       {showReport && (
         <FinalReportModal 
           history={history}
-          onClose={() => setShowReport(false)}
+          onClose={() => {
+            setShowReport(false);
+            setInterviewStage('SETUP'); // Reset back to setup for another run!
+          }}
+          subject={subject}
+          theme={theme}
+          questions={questions}
+          transcripts={transcripts}
+          gradeReport={gradeReport}
         />
+      )}
+
+      {/* 5. MODAL: SETUP INTERVIEW */}
+      {interviewStage === 'SETUP' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="relative w-full max-w-md glass-panel rounded-2xl p-6 overflow-hidden shadow-2xl flex flex-col gap-6 border border-green-500/20 pulse-border">
+            <div className="absolute inset-0 cyber-dots opacity-5 pointer-events-none"></div>
+
+            <div className="text-center space-y-2">
+              <Brain className="w-10 h-10 text-green-400 mx-auto animate-pulse" />
+              <h2 className="font-orbitron font-extrabold tracking-widest text-sm text-green-400 glow-green uppercase">
+                STRUCTURED MOCK INTERVIEW
+              </h2>
+              <p className="font-mono text-[9px] text-gray-500 tracking-wider uppercase">
+                CONFIGURE COGNITIVE GUARDIAN INTERACTIVE FLOW
+              </p>
+            </div>
+
+            <div className="space-y-4 font-mono text-[10px] text-gray-300">
+              {/* Subject Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] text-gray-500 tracking-wider uppercase block font-bold font-orbitron">
+                  SELECT TARGET SUBJECT:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Frontend Engineering", "Backend Engineering", "System Design", "Product Management"].map((sub) => (
+                    <button
+                      key={sub}
+                      onClick={() => { playClick(); setSubject(sub); }}
+                      className={`p-2.5 rounded-lg border text-center transition-all cursor-pointer font-bold ${
+                        subject === sub 
+                          ? 'border-green-500 text-green-400 bg-green-500/10 shadow-[0_0_8px_rgba(0,255,102,0.15)]' 
+                          : 'border-white/5 bg-black/40 text-gray-400 hover:border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Theme Selection */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] text-gray-500 tracking-wider uppercase block font-bold font-orbitron">
+                  SELECT INTERVIEW THEME:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["STAR Behavioral", "Technical Coding", "System Architecture", "Pressure Test"].map((thm) => (
+                    <button
+                      key={thm}
+                      onClick={() => { playClick(); setTheme(thm); }}
+                      className={`p-2.5 rounded-lg border text-center transition-all cursor-pointer font-bold ${
+                        theme === thm 
+                          ? 'border-green-500 text-green-400 bg-green-500/10 shadow-[0_0_8px_rgba(0,255,102,0.15)]' 
+                          : 'border-white/5 bg-black/40 text-gray-400 hover:border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {thm}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Start Button */}
+            <button
+              onClick={() => {
+                playClick();
+                playNextQuestionChirp();
+                const selectedQs = QUESTIONS_LIBRARY[subject][theme];
+                setQuestions(selectedQs);
+                setTranscripts({ 0: '', 1: '', 2: '' });
+                setCurrentQuestionIndex(0);
+                setInterviewStage('ACTIVE_Q1');
+                
+                // Trigger telemetry sequence start
+                handleStartSession();
+                
+                // Activate speech recognition
+                setTimeout(() => {
+                  startSpeechRecognition(0);
+                }, 100);
+              }}
+              className="w-full py-3 rounded-lg bg-green-500 text-black font-orbitron font-black text-xs tracking-wider transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,102,0.4)] cursor-pointer animate-[pulse_2s_infinite]"
+            >
+              INITIALIZE NEURAL INTERVIEW
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. MODAL: GRADING LOADER */}
+      {interviewStage === 'GRADING' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md">
+          <div className="text-center space-y-4">
+            <Brain className="w-12 h-12 text-cyan-400 mx-auto animate-bounce" />
+            <h2 className="font-orbitron font-extrabold text-sm text-cyan-400 tracking-widest glow-cyan uppercase">
+              COMPILING COGNITIVE SCORES
+            </h2>
+            <p className="font-mono text-[9px] text-gray-500 max-w-xs mx-auto leading-relaxed">
+              CROSS-REFERENCING WEB SPEECH TRANSCRIPTS WITH COMPOSTURE TELEMETRY VECTORS OVER SECURE DUAL-CLOUD NEURAL ENGINES...
+            </p>
+            <div className="w-40 h-1 bg-white/5 rounded-full mx-auto overflow-hidden">
+              <div className="bg-cyan-400 h-full w-1/2 animate-[pulse_1.5s_infinite] rounded-full"></div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* FOOTER */}
