@@ -541,3 +541,6 @@ app.listen(PORT, () => {
   console.log(`🚀 AI Interview Guardian server running on http://localhost:${PORT}`);
 });
 
+export default app;
+
+

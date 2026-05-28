@@ -21,6 +21,10 @@ import {
 } from 'lucide-react';
 import { playClick, playNextQuestionChirp, playSystemReadyChime } from '../utils/audio';
 
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : '';
+
 const QUESTIONS_LIBRARY = {
   "Frontend Engineering": {
     "STAR Behavioral": [
@@ -423,7 +427,7 @@ export default function Dashboard() {
           finalTranscripts[key] = transcripts[key].split(' (transcribing...')[0].trim();
         });
 
-        const response = await fetch('http://localhost:5000/api/grade', {
+        const response = await fetch(`${API_BASE}/api/grade`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -472,7 +476,7 @@ export default function Dashboard() {
     addTerminalLog('SENDING SNAPSHOT TO GEMINI COGNITION ENGINE...', 'info');
 
     try {
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const response = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: base64Image })
